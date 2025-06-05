@@ -26,3 +26,24 @@
     scrollbar-width: thin;
     scrollbar-color: rgba(147, 51, 234, 0.8) rgba(255, 255, 255, 0.1);
 }
+
+.epr-search-container,
+.epr-body,
+.epr-header {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+.epr-search {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+}
+
+.epr-emoji-category-label {
+  background-color: transparent !important;
+  color: #c7d2fe !important; /* optional: soft indigo text */
+}
+
+.EmojiPickerReact {
+  border-color: #b2b2b22f !important;
+}

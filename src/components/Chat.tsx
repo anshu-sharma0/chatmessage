@@ -1,19 +1,25 @@
 import { useState } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { Send, Search, MoreHorizontal, Phone, Video, Info, Smile, Paperclip } from "lucide-react";
-
+import EmojiPicker from 'emoji-picker-react';
 type Inputs = {
     message: string,
 };
 
 const Chat = () => {
-    const { register, reset, handleSubmit } = useForm<Inputs>();
+    const { register, reset, handleSubmit, getValues, setValue } = useForm<Inputs>();
     const [messages, setMessages] = useState<{ text: string; time: string; isOwn: boolean }[]>([
         { text: "Hey! How's everything going?", time: "9:30 AM", isOwn: false },
         { text: "Pretty good! Just working on some new projects. How about you?", time: "9:32 AM", isOwn: true },
         { text: "Same here! Excited about the new designs we're working on", time: "9:33 AM", isOwn: false }
     ]);
     const [isTyping, setIsTyping] = useState(false);
+    const [emojiOpen, setEmojiOpen] = useState(false);
+
+    function handleEmojiClick(emojiData: any) {
+        const currentMessage = getValues("message") || "";
+        setValue("message", currentMessage + emojiData.emoji);
+    }
 
     const sendMessage = (newMessageText: string) => {
         const currentTime = new Date().toLocaleTimeString([], {
@@ -200,7 +206,7 @@ const Chat = () => {
                         </div>
 
                         {/* Message Input */}
-                        <div className="p-6 border-t border-white/20 backdrop-blur-sm bg-white/5">
+                        <div className="p-6 border-t relative border-white/20 backdrop-blur-sm bg-white/5">
                             <div className="flex items-center gap-3">
                                 <div className="flex gap-2">
                                     <button
@@ -211,7 +217,8 @@ const Chat = () => {
                                     </button>
                                     <button
                                         type="button"
-                                        className="p-3 cursor-pointer rounded-full hover:bg-white/10 transition-all duration-200 group"
+                                        onClick={() => setEmojiOpen(!emojiOpen)}
+                                        className={`p-3 cursor-pointer rounded-full hover:bg-white/10 transition-all duration-200 group ${emojiOpen ? 'bg-white/10' : ''}`}
                                     >
 
                                         <Smile className="w-5 h-5 text-white/70 group-hover:text-white" />
@@ -228,16 +235,21 @@ const Chat = () => {
                                                 handleSubmit(onSubmit)();
                                             }
                                         }}
-                                        className="w-full px-6 py-4 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-400/50 transition-all duration-200"
+                                        className="w-full px-6 py-3 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-400/50 transition-all duration-200"
                                     />
                                 </div>
                                 <button
-                                    className="bg-gradient-to-r cursor-pointer from-purple-500 to-pink-500 text-white p-4 rounded-2xl hover:from-purple-600 hover:to-pink-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                                    className="bg-gradient-to-r cursor-pointer from-purple-500 to-pink-500 text-white p-3 rounded-2xl hover:from-purple-600 hover:to-pink-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
                                     onClick={handleSubmit(onSubmit)}
                                 >
                                     <Send className="w-5 h-5" />
                                 </button>
                             </div>
+                            {emojiOpen && (
+                                <div className="absolute bottom-[58px] left-[25px] mr-6 mb-6">
+                                    <EmojiPicker onEmojiClick={handleEmojiClick} searchDisabled={true} skinTonesDisabled={true} lazyLoadEmojis={true} height={420} width={300} className="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900" />
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
