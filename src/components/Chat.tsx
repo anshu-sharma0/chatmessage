@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import type { SubmitHandler } from "react-hook-form";
-import { Send, Search, MoreHorizontal, Phone, Video, Info, Smile, Paperclip, Divide } from "lucide-react";
+import { Send, Search, MoreHorizontal, Phone, Video, Info, Smile, Paperclip, ArrowLeft } from "lucide-react";
 
 // API functions using fetch
 const API_BASE = 'https://chat-be-j9tf.onrender.com/api/chat';
@@ -105,7 +105,7 @@ const SimpleEmojiPicker = ({ onEmojiClick, onClose }: { onEmojiClick: (emoji: st
     const emojis = ['😀', '😂', '🥰', '😍', '🤔', '👍', '👎', '❤️', '🔥', '💯', '🎉', '👏', '🤝', '💪', '🙏'];
 
     return (
-        <div className="absolute bottom-16 left-6 bg-white/20 backdrop-blur-lg border border-white/30 rounded-2xl p-4 shadow-2xl">
+        <div className="absolute bottom-16 left-6 bg-white/20 backdrop-blur-lg border border-white/30 rounded-2xl p-4 shadow-2xl z-50">
             <div className="grid grid-cols-5 gap-2 max-w-[200px]">
                 {emojis.map((emoji, index) => (
                     <button
@@ -140,6 +140,7 @@ const Chat = () => {
     const [isTyping, setIsTyping] = useState(false);
     const [emojiOpen, setEmojiOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [showChat, setShowChat] = useState(false); // New state for mobile view
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
@@ -210,7 +211,13 @@ const Chat = () => {
         setSelectedUser(user);
         setMessages([]); // Clear previous messages
         setConversationId(null);
+        setShowChat(true); // Show chat view on mobile
         initializeChat(user);
+    };
+
+    const handleBackToUsers = () => {
+        setShowChat(false);
+        setSelectedUser(null);
     };
 
     // Static placeholder avatar
@@ -230,14 +237,14 @@ const Chat = () => {
     }, []);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
-            <div className="max-w-7xl mx-auto h-[95vh] backdrop-blur-xl bg-white/10 rounded-3xl border border-white/20 shadow-2xl overflow-hidden">
+        <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-2 sm:p-4">
+            <div className="max-w-7xl mx-auto h-[95vh] sm:h-[95vh] backdrop-blur-xl bg-white/10 rounded-xl sm:rounded-3xl border border-white/20 shadow-2xl overflow-hidden">
                 <div className="flex h-full">
-                    {/* Sidebar */}
-                    <div className="w-80 border-r border-white/20 flex flex-col backdrop-blur-sm bg-white/5">
+                    {/* Sidebar - Hidden on mobile when chat is open */}
+                    <div className={`${showChat ? 'hidden' : 'flex'} md:flex w-full md:w-80 border-r border-white/20 flex-col backdrop-blur-sm bg-white/5`}>
                         {/* Header */}
-                        <div className="flex items-center justify-between p-6 border-b border-white/20">
-                            <h2 className="text-xl font-bold text-white">Messages</h2>
+                        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/20">
+                            <h2 className="text-lg sm:text-xl font-bold text-white">Messages</h2>
                             <button className="p-2 cursor-pointer rounded-full hover:bg-white/10 transition-all duration-200 group">
                                 <MoreHorizontal className="w-5 h-5 text-white/70 group-hover:text-white" />
                             </button>
@@ -250,7 +257,7 @@ const Chat = () => {
                                 <input
                                     type="text"
                                     placeholder="Search conversations..."
-                                    className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-400/50 transition-all duration-200"
+                                    className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl sm:rounded-2xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-400/50 transition-all duration-200 text-sm"
                                 />
                             </div>
                         </div>
@@ -259,18 +266,17 @@ const Chat = () => {
                         <div className="flex-1 overflow-y-auto">
                             {users && (
                                 users.map((user, i) => {
-                                    console.log({ user });
                                     if (user?._id !== currentUserId) {
                                         return (
                                             <div
                                                 key={user._id}
-                                                className={`flex items-center gap-4 p-4 hover:bg-white/10 transition-all duration-200 cursor-pointer border-b border-white/10 ${selectedUser?._id === user._id ? 'bg-white/10' : ''
+                                                className={`flex items-center gap-3 sm:gap-4 p-3 sm:p-4 hover:bg-white/10 transition-all duration-200 cursor-pointer border-b border-white/10 ${selectedUser?._id === user._id ? 'bg-white/10' : ''
                                                     }`}
                                                 onClick={() => handleUserSelect(user)}
                                             >
                                                 <div className="relative">
-                                                    <div className={`w-12 h-12 rounded-full ${getAvatarUrl(i)} flex items-center justify-center text-white font-semibold ring-2 ring-white/20`}>
-                                                        {getInitials(user.name)}
+                                                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full ${getAvatarUrl(i)} flex items-center justify-center text-white font-semibold ring-2 ring-white/20`}>
+                                                        <span className="text-xs sm:text-sm">{getInitials(user.name)}</span>
                                                     </div>
                                                 </div>
                                                 <div className="flex-1 min-w-0">
@@ -288,63 +294,69 @@ const Chat = () => {
                                 })
                             )}
                         </div>
-
                     </div>
 
-                    {/* Chat Area */}
-                    <div className="flex-1 flex flex-col">
+                    {/* Chat Area - Hidden on mobile when no chat is selected */}
+                    <div className={`${!showChat ? 'hidden' : 'flex'} md:flex flex-1 flex-col`}>
                         {selectedUser ? (
                             <>
                                 {/* Chat Header */}
-                                <div className="flex items-center justify-between p-6 border-b border-white/20 backdrop-blur-sm bg-white/5">
-                                    <div className="flex items-center gap-4">
+                                <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/20 backdrop-blur-sm bg-white/5">
+                                    <div className="flex items-center gap-3 sm:gap-4">
+                                        {/* Back button - only visible on mobile */}
+                                        <button
+                                            onClick={handleBackToUsers}
+                                            className="md:hidden p-2 cursor-pointer rounded-full hover:bg-white/10 transition-all duration-200 group"
+                                        >
+                                            <ArrowLeft className="w-5 h-5 text-white/70 group-hover:text-white" />
+                                        </button>
                                         <div className="relative">
-                                            <div className={`w-12 h-12 rounded-full ${getAvatarUrl(users.findIndex(u => u._id === selectedUser._id))} flex items-center justify-center text-white font-semibold ring-2 ring-white/20`}>
-                                                {getInitials(selectedUser.name)}
+                                            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full ${getAvatarUrl(users.findIndex(u => u._id === selectedUser._id))} flex items-center justify-center text-white font-semibold ring-2 ring-white/20`}>
+                                                <span className="text-xs sm:text-sm">{getInitials(selectedUser.name)}</span>
                                             </div>
-                                            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white/20"></div>
+                                            <div className="absolute -bottom-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-400 rounded-full border-2 border-white/20"></div>
                                         </div>
                                         <div>
-                                            <p className="text-lg font-semibold text-white">{selectedUser.name}</p>
-                                            <p className="text-sm text-white/60">Active now</p>
+                                            <p className="text-sm sm:text-lg font-semibold text-white">{selectedUser.name}</p>
+                                            <p className="text-xs sm:text-sm text-white/60">Active now</p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <button className="p-3 cursor-pointer rounded-full hover:bg-white/10 transition-all duration-200 group">
-                                            <Phone className="w-5 h-5 text-white/70 group-hover:text-white" />
+                                    <div className="flex items-center gap-1 sm:gap-2">
+                                        <button className="p-2 sm:p-3 cursor-pointer rounded-full hover:bg-white/10 transition-all duration-200 group">
+                                            <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-white/70 group-hover:text-white" />
                                         </button>
-                                        <button className="p-3 cursor-pointer rounded-full hover:bg-white/10 transition-all duration-200 group">
-                                            <Video className="w-5 h-5 text-white/70 group-hover:text-white" />
+                                        <button className="p-2 sm:p-3 cursor-pointer rounded-full hover:bg-white/10 transition-all duration-200 group">
+                                            <Video className="w-4 h-4 sm:w-5 sm:h-5 text-white/70 group-hover:text-white" />
                                         </button>
-                                        <button className="p-3 cursor-pointer rounded-full hover:bg-white/10 transition-all duration-200 group">
-                                            <Info className="w-5 h-5 text-white/70 group-hover:text-white" />
+                                        <button className="p-2 sm:p-3 cursor-pointer rounded-full hover:bg-white/10 transition-all duration-200 group">
+                                            <Info className="w-4 h-4 sm:w-5 sm:h-5 text-white/70 group-hover:text-white" />
                                         </button>
                                     </div>
                                 </div>
 
                                 {/* Message Area */}
-                                <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gradient-to-b from-transparent to-black/10">
+                                <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-3 sm:space-y-4 bg-gradient-to-b from-transparent to-black/10">
                                     {isLoading ? (
                                         <div className="flex items-center justify-center h-full">
-                                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white/70"></div>
+                                            <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-white/70"></div>
                                         </div>
                                     ) : (
                                         messages.map((message, index) => (
                                             <div
                                                 key={message._id || index}
-                                                className={`flex ${message.senderId === currentUserId ? 'justify-end' : 'items-start gap-3'} animate-in slide-in-from-bottom-4 duration-300`}
+                                                className={`flex ${message.senderId === currentUserId ? 'justify-end' : 'items-start gap-2 sm:gap-3'} animate-in slide-in-from-bottom-4 duration-300`}
                                             >
                                                 {message.senderId !== currentUserId && (
-                                                    <div className={`w-8 h-8 rounded-full ${getAvatarUrl(users.findIndex(u => u._id === selectedUser._id))} flex items-center justify-center text-white text-xs font-semibold ring-2 ring-white/20`}>
-                                                        {getInitials(selectedUser.name)}
+                                                    <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full ${getAvatarUrl(users.findIndex(u => u._id === selectedUser._id))} flex items-center justify-center text-white text-xs font-semibold ring-2 ring-white/20 flex-shrink-0`}>
+                                                        <span className="text-[10px] sm:text-xs">{getInitials(selectedUser.name)}</span>
                                                     </div>
                                                 )}
-                                                <div className={`relative px-4 py-3 pr-12 rounded-2xl shadow-lg max-w-sm ${message.senderId === currentUserId
+                                                <div className={`relative px-3 sm:px-4 py-2 sm:py-3 pr-10 sm:pr-12 rounded-xl sm:rounded-2xl shadow-lg max-w-[280px] sm:max-w-sm ${message.senderId === currentUserId
                                                     ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white ml-auto'
                                                     : 'bg-white/20 backdrop-blur-sm text-white border border-white/20'
                                                     }`}>
-                                                    <p className="text-sm">{message.message}</p>
-                                                    <div className="text-[10px] absolute bottom-1.5 right-3 text-white/60">
+                                                    <p className="text-xs sm:text-sm">{message.message}</p>
+                                                    <div className="text-[9px] sm:text-[10px] absolute bottom-1 sm:bottom-1.5 right-2 sm:right-3 text-white/60">
                                                         {new Date(message.timestamp).toLocaleTimeString([], {
                                                             hour: '2-digit',
                                                             minute: '2-digit',
@@ -357,15 +369,15 @@ const Chat = () => {
 
                                     {/* Typing Indicator */}
                                     {isTyping && (
-                                        <div className="flex items-start gap-3 animate-in slide-in-from-bottom-4 duration-300">
-                                            <div className={`w-8 h-8 rounded-full ${getAvatarUrl(users.findIndex(u => u._id === selectedUser._id))} flex items-center justify-center text-white text-xs font-semibold ring-2 ring-white/20`}>
-                                                {getInitials(selectedUser.name)}
+                                        <div className="flex items-start gap-2 sm:gap-3 animate-in slide-in-from-bottom-4 duration-300">
+                                            <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full ${getAvatarUrl(users.findIndex(u => u._id === selectedUser._id))} flex items-center justify-center text-white text-xs font-semibold ring-2 ring-white/20`}>
+                                                <span className="text-[10px] sm:text-xs">{getInitials(selectedUser.name)}</span>
                                             </div>
-                                            <div className="bg-white/20 backdrop-blur-sm border border-white/20 px-4 py-3 rounded-2xl">
+                                            <div className="bg-white/20 backdrop-blur-sm border border-white/20 px-3 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl">
                                                 <div className="flex space-x-1">
-                                                    <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce"></div>
-                                                    <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                                                    <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                                                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white/60 rounded-full animate-bounce"></div>
+                                                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                                                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                                                 </div>
                                             </div>
                                         </div>
@@ -374,21 +386,21 @@ const Chat = () => {
                                 </div>
 
                                 {/* Message Input */}
-                                <div className="p-6 border-t relative border-white/20 backdrop-blur-sm bg-white/5">
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex gap-2">
+                                <div className="p-3 sm:p-6 border-t relative border-white/20 backdrop-blur-sm bg-white/5">
+                                    <div className="flex items-center gap-2 sm:gap-3">
+                                        <div className="flex gap-1 sm:gap-2">
                                             <button
                                                 type="button"
-                                                className="p-3 cursor-pointer rounded-full hover:bg-white/10 transition-all duration-200 group"
+                                                className="p-2 sm:p-3 cursor-pointer rounded-full hover:bg-white/10 transition-all duration-200 group"
                                             >
-                                                <Paperclip className="w-5 h-5 text-white/70 group-hover:text-white" />
+                                                <Paperclip className="w-4 h-4 sm:w-5 sm:h-5 text-white/70 group-hover:text-white" />
                                             </button>
                                             <button
                                                 type="button"
                                                 onClick={() => setEmojiOpen(!emojiOpen)}
-                                                className={`p-3 cursor-pointer rounded-full hover:bg-white/10 transition-all duration-200 group ${emojiOpen ? 'bg-white/10' : ''}`}
+                                                className={`p-2 sm:p-3 cursor-pointer rounded-full hover:bg-white/10 transition-all duration-200 group ${emojiOpen ? 'bg-white/10' : ''}`}
                                             >
-                                                <Smile className="w-5 h-5 text-white/70 group-hover:text-white" />
+                                                <Smile className="w-4 h-4 sm:w-5 sm:h-5 text-white/70 group-hover:text-white" />
                                             </button>
                                         </div>
                                         <div className="flex-1 relative">
@@ -402,14 +414,14 @@ const Chat = () => {
                                                         handleSubmit(onSubmit)();
                                                     }
                                                 }}
-                                                className="w-full px-6 py-3 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-400/50 transition-all duration-200"
+                                                className="w-full px-4 sm:px-6 py-2.5 sm:py-3 bg-white/10 border border-white/20 rounded-xl sm:rounded-2xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-400/50 transition-all duration-200 text-sm"
                                             />
                                         </div>
                                         <button
-                                            className="bg-gradient-to-r cursor-pointer from-purple-500 to-pink-500 text-white p-3 rounded-2xl hover:from-purple-600 hover:to-pink-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                                            className="bg-gradient-to-r cursor-pointer from-purple-500 to-pink-500 text-white p-2.5 sm:p-3 rounded-xl sm:rounded-2xl hover:from-purple-600 hover:to-pink-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
                                             onClick={handleSubmit(onSubmit)}
                                         >
-                                            <Send className="w-5 h-5" />
+                                            <Send className="w-4 h-4 sm:w-5 sm:h-5" />
                                         </button>
                                     </div>
                                     {emojiOpen && (
@@ -421,14 +433,14 @@ const Chat = () => {
                                 </div>
                             </>
                         ) : (
-                            /* Welcome Screen */
-                            <div className="flex-1 flex items-center justify-center">
+                            /* Welcome Screen - Only shown on desktop when no user is selected */
+                            <div className="hidden md:flex flex-1 items-center justify-center">
                                 <div className="text-center">
-                                    <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                                        <Send className="w-12 h-12 text-white/70" />
+                                    <div className="w-16 h-16 sm:w-24 sm:h-24 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+                                        <Send className="w-8 h-8 sm:w-12 sm:h-12 text-white/70" />
                                     </div>
-                                    <h3 className="text-2xl font-bold text-white mb-2">Welcome to Chat</h3>
-                                    <p className="text-white/60">Select a conversation to start messaging</p>
+                                    <h3 className="text-xl sm:text-2xl font-bold text-white mb-2">Welcome to Chat</h3>
+                                    <p className="text-white/60 text-sm sm:text-base">Select a conversation to start messaging</p>
                                 </div>
                             </div>
                         )}
