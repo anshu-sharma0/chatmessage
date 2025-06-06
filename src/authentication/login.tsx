@@ -51,7 +51,7 @@ const AuthComponent: React.FC = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
-  const apiUrl = "https://chat-be-j9tf.onrender.com/api/auth";
+  const apiUrl = import.meta.env.VITE_API_URL + '/api/auth';
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
