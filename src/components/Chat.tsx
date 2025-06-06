@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from "react";
-import { useForm } from "react-hook-form";
+import { ArrowLeft, Info, MoreHorizontal, Paperclip, Phone, Search, Send, Smile, Video } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import type { SubmitHandler } from "react-hook-form";
-import { Send, Search, MoreHorizontal, Phone, Video, Info, Smile, Paperclip, ArrowLeft } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { io } from "socket.io-client";
 
-// API functions using fetch
-const API_BASE = 'https://chat-be-j9tf.onrender.com/api/chat';
+const API_BASE = import.meta.env.VITE_API_URL + '/api/chat';
+const socket = io(import.meta.env.VITE_API_URL);
 
 const api = {
     getUsers: async () => {
@@ -194,6 +195,13 @@ const Chat = () => {
         try {
             const newMessage = await api.sendMessage(conversationId, currentUserId, newMessageText);
             setMessages(prev => [...prev, newMessage]);
+
+            // Emit message to other users in the same conversation
+            socket.emit("send_message", {
+                conversationId,
+                message: newMessage
+            });
+
         } catch (err) {
             console.error('Failed to send message:', err);
         }
@@ -234,6 +242,23 @@ const Chat = () => {
         const userId = JSON.parse(localStorage.getItem('user') || '{}');
         setCurrentUserId(userId.id);
     }, []);
+
+    useEffect(() => {
+    if (conversationId) {
+        socket.emit("join_conversation", conversationId);
+    }
+}, [conversationId]);
+
+useEffect(() => {
+    socket.on("receive_message", (message: MessageType) => {
+        setMessages(prev => [...prev, message]);
+    });
+
+    return () => {
+        socket.off("receive_message");
+    };
+}, []);
+
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-2 sm:p-4">
