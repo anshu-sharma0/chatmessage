@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useForm, SubmitHandler } from "react-hook-form";
+import { useForm } from "react-hook-form";
+import type { SubmitHandler } from "react-hook-form";
 import { Send, Search, MoreHorizontal, Phone, Video, Info, Smile, Paperclip } from "lucide-react";
 import EmojiPicker from 'emoji-picker-react';
 type Inputs = {
