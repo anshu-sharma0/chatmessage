@@ -137,7 +137,6 @@ const Chat = () => {
     const [users, setUsers] = useState<UserType[]>([]);
     const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
     const [currentUserId, setCurrentUserId] = useState<any>(null);
-    const [isTyping, setIsTyping] = useState(false);
     const [emojiOpen, setEmojiOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [showChat, setShowChat] = useState(false); // New state for mobile view
@@ -367,21 +366,6 @@ const Chat = () => {
                                         ))
                                     )}
 
-                                    {/* Typing Indicator */}
-                                    {isTyping && (
-                                        <div className="flex items-start gap-2 sm:gap-3 animate-in slide-in-from-bottom-4 duration-300">
-                                            <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full ${getAvatarUrl(users.findIndex(u => u._id === selectedUser._id))} flex items-center justify-center text-white text-xs font-semibold ring-2 ring-white/20`}>
-                                                <span className="text-[10px] sm:text-xs">{getInitials(selectedUser.name)}</span>
-                                            </div>
-                                            <div className="bg-white/20 backdrop-blur-sm border border-white/20 px-3 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl">
-                                                <div className="flex space-x-1">
-                                                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white/60 rounded-full animate-bounce"></div>
-                                                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                                                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
                                     <div ref={messagesEndRef} />
                                 </div>
 
