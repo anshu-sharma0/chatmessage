@@ -142,6 +142,7 @@ const Chat = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [showChat, setShowChat] = useState(false); // New state for mobile view
     const [typingUser, setTypingUser] = useState<boolean>(false);
+    const [onlineUserIds, setOnlineUserIds] = useState<string[]>([]);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const typingTimeoutRef = useRef<any>(null);
@@ -334,6 +335,19 @@ const Chat = () => {
         };
     }, []);
 
+    useEffect(() => {
+        if (socket && currentUserId) {
+            socket.emit("userOnline", currentUserId);
+
+            socket.on("onlineUsers", (userIds) => {
+                setOnlineUserIds(userIds);
+            });
+
+            return () => {
+                socket.off("onlineUsers");
+            };
+        }
+    }, [socket, currentUserId]);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-2 sm:p-4">
@@ -369,7 +383,7 @@ const Chat = () => {
                                         return (
                                             <div
                                                 key={user._id}
-                                                className={`flex items-center gap-3 sm:gap-4 p-3 sm:p-4 hover:bg-white/10 transition-all duration-200 cursor-pointer border-b border-white/10 ${selectedUser?._id === user._id ? 'bg-white/10' : ''
+                                                className={`relative flex items-center gap-3 sm:gap-4 p-3 sm:p-4 hover:bg-white/10 transition-all duration-200 cursor-pointer border-t border-white/10 ${selectedUser?._id === user._id ? 'bg-white/10' : ''
                                                     }`}
                                                 onClick={() => handleUserSelect(user)}
                                             >
@@ -381,7 +395,9 @@ const Chat = () => {
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center justify-between">
                                                         <p className="text-sm font-semibold text-white truncate">{user.name}</p>
-                                                        <span className="text-xs text-white/50">online</span>
+                                                        {onlineUserIds.includes(user._id) && (
+                                                            <span className="absolute left-11 bottom-4 w-3 h-3 bg-green-500 rounded-full border border-white/20"></span>
+                                                        )}
                                                     </div>
                                                     <p className="text-xs text-white/60 truncate mt-1">Click to start chatting</p>
                                                 </div>
@@ -413,11 +429,10 @@ const Chat = () => {
                                             <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full ${getAvatarUrl(users.findIndex(u => u._id === selectedUser._id))} flex items-center justify-center text-white font-semibold ring-2 ring-white/20`}>
                                                 <span className="text-xs sm:text-sm">{getInitials(selectedUser.name)}</span>
                                             </div>
-                                            <div className="absolute -bottom-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-400 rounded-full border-2 border-white/20"></div>
                                         </div>
                                         <div>
                                             <p className="text-sm sm:text-lg font-semibold text-white">{selectedUser.name}</p>
-                                            <p className="text-xs sm:text-sm text-white/60">Active now</p>
+                                            {onlineUserIds.includes(selectedUser?._id) && <p className="text-xs sm:text-sm text-white/60">Active now</p>}
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-1 sm:gap-2">
