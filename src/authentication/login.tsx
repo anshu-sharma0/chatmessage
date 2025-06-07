@@ -253,7 +253,7 @@ const AuthComponent: React.FC = () => {
           )}
 
           {/* Form */}
-          <form className="space-y-6">
+          <form className="space-y-6"> 
             {/* Name field (signup only) */}
             {activeTab === 'signup' && (
               <div className="transform transition-all duration-300 ease-in-out">
