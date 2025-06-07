@@ -106,7 +106,7 @@ const SimpleEmojiPicker = ({ onEmojiClick, onClose }: { onEmojiClick: (emoji: st
     const emojis = ['😀', '😂', '🥰', '😍', '🤔', '👍', '👎', '❤️', '🔥', '💯', '🎉', '👏', '🤝', '💪', '🙏'];
 
     return (
-        <div className="absolute bottom-16 left-6 bg-white/20 backdrop-blur-lg border border-white/30 rounded-2xl p-4 shadow-2xl z-50">
+        <div className="absolute bottom-16 left-6 bg-black/50 backdrop-blur-lg border border-white/30 rounded-2xl p-4 shadow-2xl z-50">
             <div className="grid grid-cols-5 gap-2 max-w-[200px]">
                 {emojis.map((emoji, index) => (
                     <button
@@ -141,7 +141,10 @@ const Chat = () => {
     const [emojiOpen, setEmojiOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [showChat, setShowChat] = useState(false); // New state for mobile view
+    const [typingUser, setTypingUser] = useState<boolean>(false);
+
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const typingTimeoutRef = useRef<any>(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -165,6 +168,49 @@ const Chat = () => {
             console.error('Failed to get users:', err);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (!selectedUser || !socket) return;
+
+        socket.emit("typing", {
+            conversationId: selectedUser._id,
+            user: currentUserId
+        });
+
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = setTimeout(() => {
+            socket.emit("stop_typing", {
+                conversationId: selectedUser._id,
+                user: currentUserId
+            });
+        }, 2000);
+
+    }, []);
+
+    const handleTyping = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setValue("message", value);
+
+        if (socket && selectedUser && value !== "") {
+            socket.emit("typing", {
+                conversationId: conversationId,
+                user: selectedUser?._id
+            });
+
+            socket.emit("stop_typing", {
+                conversationId: conversationId,
+                user: selectedUser?._id
+            });
+
+            clearTimeout(typingTimeoutRef.current);
+            typingTimeoutRef.current = setTimeout(() => {
+                socket.emit("stop_typing", {
+                    conversationId: selectedUser._id,
+                    user: currentUserId
+                });
+            }, 1500);
         }
     };
 
@@ -244,20 +290,49 @@ const Chat = () => {
     }, []);
 
     useEffect(() => {
-    if (conversationId) {
-        socket.emit("join_conversation", conversationId);
-    }
-}, [conversationId]);
+        if (conversationId) {
+            socket.emit("join_conversation", conversationId);
+        }
+    }, [conversationId]);
 
-useEffect(() => {
-    socket.on("receive_message", (message: MessageType) => {
-        setMessages(prev => [...prev, message]);
-    });
+    useEffect(() => {
+        if (socket) {
+            socket.on("receive_message", (message: MessageType) => {
+                setMessages(prev => [...prev, message]);
+            });
 
-    return () => {
-        socket.off("receive_message");
-    };
-}, []);
+            socket.on("typing", (user) => {
+                if (user._id !== currentUserId) {
+                    setTypingUser(true);
+                    if (typingTimeoutRef.current) {
+                        clearTimeout(typingTimeoutRef.current);
+                    }
+                }
+            });
+
+            socket.on("stop_typing", (user) => {
+                if (user._id !== currentUserId) {
+                    typingTimeoutRef.current = setTimeout(() => {
+                        if (typingTimeoutRef.current) {
+                            clearTimeout(typingTimeoutRef.current);
+                        }
+                        setTypingUser(false);
+                    }, 2000);
+                }
+            });
+        }
+
+        return () => {
+            if (socket) {
+                socket.off("receive_message");
+                socket.off("typing");
+                socket.off("stop_typing");
+            }
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
+            }
+        };
+    }, []);
 
 
     return (
@@ -379,7 +454,7 @@ useEffect(() => {
                                                     ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white ml-auto'
                                                     : 'bg-white/20 backdrop-blur-sm text-white border border-white/20'
                                                     }`}>
-                                                    <p className="text-xs sm:text-sm">{message.message}</p>
+                                                    <p className="text-xs sm:text-sm pr-3">{message.message}</p>
                                                     <div className="text-[9px] sm:text-[10px] absolute bottom-1 sm:bottom-1.5 right-2 sm:right-3 text-white/60">
                                                         {new Date(message.timestamp).toLocaleTimeString([], {
                                                             hour: '2-digit',
@@ -390,6 +465,16 @@ useEffect(() => {
                                             </div>
                                         ))
                                     )}
+
+                                    <div className="h-3 m-0 flex items-center ">
+                                        {typingUser && (
+                                            <div className="flex items-center space-x-1">
+                                                <span className="h-2 w-2 bg-blue-400 rounded-full animate-bounce [animation-delay:0s]"></span>
+                                                <span className="h-2 w-2 bg-blue-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                                                <span className="h-2 w-2 bg-blue-400 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                                            </div>
+                                        )}
+                                    </div>
 
                                     <div ref={messagesEndRef} />
                                 </div>
@@ -417,13 +502,14 @@ useEffect(() => {
                                                 type="text"
                                                 placeholder="Type your message..."
                                                 {...register("message", { required: true })}
+                                                onChange={handleTyping}
                                                 onKeyDown={(e) => {
                                                     if (e.key === 'Enter') {
                                                         e.preventDefault();
                                                         handleSubmit(onSubmit)();
                                                     }
                                                 }}
-                                                className="w-full px-4 sm:px-6 py-2.5 sm:py-3 bg-white/10 border border-white/20 rounded-xl sm:rounded-2xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-400/50 transition-all duration-200 text-sm"
+                                                className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none"
                                             />
                                         </div>
                                         <button

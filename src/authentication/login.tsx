@@ -253,7 +253,7 @@ const AuthComponent: React.FC = () => {
           )}
 
           {/* Form */}
-          <div className="space-y-6">
+          <form className="space-y-6">
             {/* Name field (signup only) */}
             {activeTab === 'signup' && (
               <div className="transform transition-all duration-300 ease-in-out">
@@ -401,7 +401,7 @@ const AuthComponent: React.FC = () => {
               </svg>
               {loading ? 'Connecting...' : `${activeTab === 'login' ? 'Sign in' : 'Sign up'} with Google`}
             </button>
-          </div>
+          </form>
 
         </div>
       </div>
