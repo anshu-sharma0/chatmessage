@@ -144,7 +144,6 @@ const Chat = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [showChat, setShowChat] = useState(false); // New state for mobile view
     const [typingUser, setTypingUser] = useState<boolean>(false);
-    const [onlineUserIds, setOnlineUserIds] = useState<string[]>([]);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const typingTimeoutRef = useRef<any>(null);
@@ -325,20 +324,6 @@ const Chat = () => {
             }
         };
     }, []);
-
-    useEffect(() => {
-        if (socket && currentUserId) {
-            socket.emit("userOnline", currentUserId);
-
-            socket.on("onlineUsers", (userIds) => {
-                setOnlineUserIds(userIds);
-            });
-
-            return () => {
-                socket.off("onlineUsers");
-            };
-        }
-    }, [socket, currentUserId]);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-2 sm:p-4">
