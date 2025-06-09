@@ -3,27 +3,27 @@ import { useEffect, useRef, useState } from "react";
 import type { SubmitHandler } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { io } from "socket.io-client";
+import { formatTime } from "../utils/Time";
 
 const API_BASE = import.meta.env.VITE_API_URL + '/api/chat';
 const socket = io(import.meta.env.VITE_API_URL);
 
 const api = {
-    getUsers: async () => {
-        try {
-            const response = await fetch(`${API_BASE}/users`);
-            if (!response.ok) throw new Error('Failed to fetch users');
-            return await response.json();
-        } catch (error) {
-            console.error('Error fetching users:', error);
-            // Fallback data for demo
-            return [
-                { _id: "1", name: "Sarah Wilson", email: "sarah@example.com" },
-                { _id: "2", name: "John Doe", email: "john@example.com" },
-                { _id: "3", name: "Alex Chen", email: "alex@example.com" },
-                { _id: "4", name: "Emma Davis", email: "emma@example.com" },
-                { _id: "5", name: "Mike Johnson", email: "mike@example.com" }
-            ];
-        }
+    getUsers: () => {
+        return new Promise((resolve, reject) => {
+            socket.emit("get_users");
+
+            socket.once("users_list", (users) => {
+                resolve(users);
+            });
+
+            socket.once("error", (err) => {
+                console.error("Socket error while fetching users:", err);
+                reject(err);
+            });
+
+            setTimeout(() => reject("Timeout getting users"), 5000);
+        });
     },
 
     createConversation: async (user1: string, user2: string) => {
@@ -95,6 +95,8 @@ type UserType = {
     _id: string;
     name: string;
     email: string;
+    lastSeen: string;
+    isOnline: boolean;
 };
 
 type Inputs = {
@@ -160,34 +162,34 @@ const Chat = () => {
         setValue("message", currentMessage + emoji);
     }
 
-    const getUsers = async () => {
-        try {
-            setIsLoading(true);
-            const usersData = await api.getUsers();
-            setUsers(usersData);
-        } catch (err) {
-            console.error('Failed to get users:', err);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
     useEffect(() => {
-        if (!selectedUser || !socket) return;
+        const fetchUsers = () => {
+            setIsLoading(true);
 
-        socket.emit("typing", {
-            conversationId: selectedUser._id,
-            user: currentUserId
-        });
+            socket.emit("get_users");
 
-        clearTimeout(typingTimeoutRef.current);
-        typingTimeoutRef.current = setTimeout(() => {
-            socket.emit("stop_typing", {
-                conversationId: selectedUser._id,
-                user: currentUserId
+            socket.on("users_list", (users: any) => {
+                setUsers(users);
+                setIsLoading(false);
             });
-        }, 2000);
 
+            socket.once("error", (err) => {
+                console.error("❌ Error fetching users via socket:", err);
+                setIsLoading(false);
+            });
+        };
+
+        fetchUsers();
+
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        if (user && user.id) {
+            setCurrentUserId(user.id);
+        }
+
+        return () => {
+            socket.off("users_list");
+            socket.off("error");
+        };
     }, []);
 
     const handleTyping = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -196,11 +198,6 @@ const Chat = () => {
 
         if (socket && selectedUser && value !== "") {
             socket.emit("typing", {
-                conversationId: conversationId,
-                user: selectedUser?._id
-            });
-
-            socket.emit("stop_typing", {
                 conversationId: conversationId,
                 user: selectedUser?._id
             });
@@ -276,19 +273,13 @@ const Chat = () => {
 
     // Static placeholder avatar
     const getAvatarUrl = (index: number) => {
-        const colors = ['bg-purple-500', 'bg-blue-500', 'bg-green-500', 'bg-pink-500', 'bg-indigo-500', 'bg-red-500'];
+        const colors = ['bg-violet-500', 'bg-indigo-500', 'bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-orange-500', 'bg-red-500'];
         return colors[index % colors.length];
     };
 
     const getInitials = (name: string) => {
         return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
     };
-
-    useEffect(() => {
-        getUsers();
-        const userId = JSON.parse(localStorage.getItem('user') || '{}');
-        setCurrentUserId(userId.id);
-    }, []);
 
     useEffect(() => {
         if (conversationId) {
@@ -395,8 +386,8 @@ const Chat = () => {
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center justify-between">
                                                         <p className="text-sm font-semibold text-white truncate">{user.name}</p>
-                                                        {onlineUserIds.includes(user._id) && (
-                                                            <span className="absolute left-11 bottom-4 w-3 h-3 bg-green-500 rounded-full border border-white/20"></span>
+                                                        {user?.isOnline && (
+                                                            <span className="absolute left-11 bottom-4 lg:left-14 lg:bottom-5 w-3 h-3 bg-green-500 rounded-full border border-white/20"></span>
                                                         )}
                                                     </div>
                                                     <p className="text-xs text-white/60 truncate mt-1">Click to start chatting</p>
@@ -432,7 +423,7 @@ const Chat = () => {
                                         </div>
                                         <div>
                                             <p className="text-sm sm:text-lg font-semibold text-white">{selectedUser.name}</p>
-                                            {onlineUserIds.includes(selectedUser?._id) && <p className="text-xs sm:text-sm text-white/60">Active now</p>}
+                                            {selectedUser?.isOnline ? <p className="text-xs sm:text-sm text-white/60">Active now</p> : <p className="text-xs sm:text-sm text-white/60">last seen: <span>{selectedUser?.lastSeen && formatTime(selectedUser.lastSeen)}</span></p>}
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-1 sm:gap-2">
@@ -471,10 +462,7 @@ const Chat = () => {
                                                     }`}>
                                                     <p className="text-xs sm:text-sm pr-3">{message.message}</p>
                                                     <div className="text-[9px] sm:text-[10px] absolute bottom-1 sm:bottom-1.5 right-2 sm:right-3 text-white/60">
-                                                        {new Date(message.timestamp).toLocaleTimeString([], {
-                                                            hour: '2-digit',
-                                                            minute: '2-digit',
-                                                        })}
+                                                        {formatTime(message.timestamp)}
                                                     </div>
                                                 </div>
                                             </div>
