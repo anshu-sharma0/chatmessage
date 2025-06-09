@@ -4,6 +4,7 @@ import type { SubmitHandler } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { io } from "socket.io-client";
 import { formatTime } from "../utils/Time";
+import { useNavigate } from 'react-router-dom';
 
 const API_BASE = import.meta.env.VITE_API_URL + '/api/chat';
 const socket = io(import.meta.env.VITE_API_URL);
@@ -144,6 +145,7 @@ const Chat = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [showChat, setShowChat] = useState(false); // New state for mobile view
     const [typingUser, setTypingUser] = useState<boolean>(false);
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const typingTimeoutRef = useRef<any>(null);
@@ -155,6 +157,7 @@ const Chat = () => {
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
+    const navigate = useNavigate();
 
     function handleEmojiClick(emoji: string) {
         const currentMessage = getValues("message") || "";
@@ -232,6 +235,11 @@ const Chat = () => {
         }
     };
 
+    const handleLogout = () => {
+        localStorage.clear();
+        navigate('/login');
+    };
+
     const sendMessage = async (newMessageText: string) => {
         if (!conversationId || !newMessageText.trim()) return;
 
@@ -286,6 +294,14 @@ const Chat = () => {
         }
     }, [conversationId]);
 
+
+    useEffect(() => {
+        socket.on("server_call", (msg) => {
+            console.log("high", msg);
+        })
+        socket.emit("client_call", "hrllo")
+    }, [])
+
     useEffect(() => {
         if (socket) {
             socket.on("receive_message", (message: MessageType) => {
@@ -332,11 +348,30 @@ const Chat = () => {
                     {/* Sidebar - Hidden on mobile when chat is open */}
                     <div className={`${showChat ? 'hidden' : 'flex'} md:flex w-full md:w-80 border-r border-white/20 flex-col backdrop-blur-sm bg-white/5`}>
                         {/* Header */}
-                        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/20">
+                        <div className="relative flex items-center justify-between p-4 sm:p-6 border-b border-white/20">
                             <h2 className="text-lg sm:text-xl font-bold text-white">Messages</h2>
-                            <button className="p-2 cursor-pointer rounded-full hover:bg-white/10 transition-all duration-200 group">
-                                <MoreHorizontal className="w-5 h-5 text-white/70 group-hover:text-white" />
-                            </button>
+
+                            {/* Dropdown Trigger */}
+                            <div className="relative">
+                                <button
+                                    className="p-2 cursor-pointer rounded-full hover:bg-white/10 transition-all duration-200 group"
+                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                >
+                                    <MoreHorizontal className="w-5 h-5 text-white/70 group-hover:text-white" />
+                                </button>
+
+                                {/* Dropdown Menu */}
+                                {isDropdownOpen && (
+                                    <div className="absolute mt-2 w-24 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 rounded-lg shadow-xl z-50">
+                                        <button
+                                            onClick={handleLogout}
+                                            className="w-full text-left px-4 py-2 text-white hover:bg-purple-800/50 rounded-md transition duration-150 text-sm"
+                                        >
+                                            Logout
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {/* Search */}
@@ -353,37 +388,33 @@ const Chat = () => {
 
                         {/* Chat List */}
                         <div className="flex-1 overflow-y-auto">
-                            {users && (
-                                users.map((user, i) => {
-                                    if (user?._id !== currentUserId) {
-                                        return (
-                                            <div
-                                                key={user._id}
-                                                className={`relative flex items-center gap-3 sm:gap-4 p-3 sm:p-4 hover:bg-white/10 transition-all duration-200 cursor-pointer border-t border-white/10 ${selectedUser?._id === user._id ? 'bg-white/10' : ''
-                                                    }`}
-                                                onClick={() => handleUserSelect(user)}
-                                            >
-                                                <div className="relative">
-                                                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full ${getAvatarUrl(i)} flex items-center justify-center text-white font-semibold ring-2 ring-white/20`}>
-                                                        <span className="text-xs sm:text-sm">{getInitials(user.name)}</span>
-                                                    </div>
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center justify-between">
-                                                        <p className="text-sm font-semibold text-white truncate">{user.name}</p>
-                                                        {user?.isOnline && (
-                                                            <span className="absolute left-11 bottom-4 lg:left-14 lg:bottom-5 w-3 h-3 bg-green-500 rounded-full border border-white/20"></span>
-                                                        )}
-                                                    </div>
-                                                    <p className="text-xs text-white/60 truncate mt-1">Click to start chatting</p>
+                            {users && users.map((user, i) => {
+                                if (user?._id !== currentUserId) {
+                                    return (
+                                        <div
+                                            key={user._id}
+                                            className={`relative flex items-center gap-3 sm:gap-4 p-3 sm:p-4 hover:bg-white/10 transition-all duration-200 cursor-pointer border-t border-white/10 ${selectedUser?._id === user._id ? 'bg-white/10' : ''}`}
+                                            onClick={() => handleUserSelect(user)}
+                                        >
+                                            <div className="relative">
+                                                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full ${getAvatarUrl(i)} flex items-center justify-center text-white font-semibold ring-2 ring-white/20`}>
+                                                    <span className="text-xs sm:text-sm">{getInitials(user.name)}</span>
                                                 </div>
                                             </div>
-                                        );
-                                    } else {
-                                        return null;
-                                    }
-                                })
-                            )}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between">
+                                                    <p className="text-sm font-semibold text-white truncate">{user.name}</p>
+                                                    {user?.isOnline && (
+                                                        <span className="absolute left-11 bottom-4 lg:left-14 lg:bottom-5 w-3 h-3 bg-green-500 rounded-full border border-white/20"></span>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-white/60 truncate mt-1">Click to start chatting</p>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            })}
                         </div>
                     </div>
 
