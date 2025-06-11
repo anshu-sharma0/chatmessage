@@ -4,6 +4,7 @@ import PublicRoute from "./publicRoute.tsx";
 import PrivateRoute from "./privateRoute.tsx";
 import AuthComponent from "../authentication/login.tsx";
 import NotFoundPage from "../NotFound.tsx";
+import Login from '../components/login.tsx'
 
 const router = createBrowserRouter([
   {
@@ -29,6 +30,10 @@ const router = createBrowserRouter([
       {
         path: "*",
         element: <NotFoundPage />
+      },
+      {
+        path: '/ak',
+        element: <Login />
       }
     ],
   },
